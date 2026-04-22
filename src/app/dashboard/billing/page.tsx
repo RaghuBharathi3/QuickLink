@@ -55,7 +55,8 @@ export default function BillingPage() {
       const { orderId, amount, key } = await orderRes.json()
 
       if (!key) {
-        toast.error('Razorpay key is completely missing from your Vercel or local environment variables.');
+        console.error('CRITICAL: Razorpay Key was not returned by /api/billing/create-order');
+        toast.error('Configuration Error: Razorpay Key is missing in Vercel environment variables.');
         setPaying(false);
         return;
       }
