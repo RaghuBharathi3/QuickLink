@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { original_url, title, fg_color, bg_color, style_type, active_from, expires_at } = body
+    const { original_url, title, fg_color, bg_color, style_type, active_from, expires_at, password } = body
 
     // Validate destination URL
     const urlCheck = validateUrl(original_url)
@@ -68,6 +68,12 @@ export async function POST(request: Request) {
     // Generate a unique 8-character short ID
     const short_id = crypto.randomBytes(4).toString('hex')
 
+    let password_hash = null
+    if (password) {
+      const bcrypt = require('bcryptjs')
+      password_hash = await bcrypt.hash(password, 10)
+    }
+
     const { data, error } = await supabase
       .from('qr_codes')
       .insert({
@@ -77,9 +83,10 @@ export async function POST(request: Request) {
         title: title || null,
         fg_color: fg_color || '#000000',
         bg_color: bg_color || '#FFFFFF',
-        style_type: style_type || 'square',
+        style_type: style_type || '#FFFFFF', 
         active_from: active_from || null,
         expires_at: expires_at || null,
+        password_hash
       })
       .select()
       .single()

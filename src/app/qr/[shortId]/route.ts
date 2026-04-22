@@ -96,7 +96,13 @@ export async function GET(
   if (data.password_hash) {
     return NextResponse.redirect(
       new URL(`/qr/${shortId}/protected`, request.url),
-      { status: 302 }
+      { 
+        status: 302,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      }
     )
   }
 

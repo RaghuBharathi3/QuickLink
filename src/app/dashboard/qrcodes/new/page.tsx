@@ -13,6 +13,7 @@ import { ArrowLeft } from 'lucide-react'
 export default function NewQRCodePage() {
   const [title, setTitle] = useState('')
   const [originalUrl, setOriginalUrl] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -24,7 +25,11 @@ export default function NewQRCodePage() {
       const res = await fetch('/api/codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, original_url: originalUrl })
+        body: JSON.stringify({ 
+          title, 
+          original_url: originalUrl,
+          password: password || null
+        })
       })
 
       if (res.ok) {
@@ -76,6 +81,17 @@ export default function NewQRCodePage() {
                 value={originalUrl} 
                 onChange={(e) => setOriginalUrl(e.target.value)} 
                 required 
+                className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
+              />
+            </div>
+            <div className="space-y-3">
+              <Label htmlFor="password" title="Optional: require a password to view the destination">Password Protection (Optional)</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                placeholder="Leave blank for none" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
                 className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
               />
             </div>
