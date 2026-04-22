@@ -18,7 +18,11 @@ export async function POST(req: Request) {
     };
 
     const order = await razorpay.orders.create(options);
-    return NextResponse.json({ orderId: order.id, amount: options.amount });
+    return NextResponse.json({ 
+      orderId: order.id, 
+      amount: options.amount,
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID 
+    });
   } catch (error: any) {
     console.error('Razorpay Order Error:', error);
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });

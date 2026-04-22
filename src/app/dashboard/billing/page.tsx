@@ -52,10 +52,16 @@ export default function BillingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: amountInRupees })
       })
-      const { orderId, amount } = await orderRes.json()
+      const { orderId, amount, key } = await orderRes.json()
+
+      if (!key) {
+        toast.error('Razorpay key is completely missing from your Vercel or local environment variables.');
+        setPaying(false);
+        return;
+      }
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
+        key: key, 
         amount,
         currency: 'INR',
         name: 'Quicklink Pro',

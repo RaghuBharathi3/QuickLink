@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
-  LayoutDashboard, QrCode, Settings, BarChart3, CreditCard, ChevronRight, Palette, LogOut, Crown
+  LayoutDashboard, QrCode, Settings, BarChart3, CreditCard, ChevronRight, Palette, LogOut, Crown, Shield
 } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuPage, DropdownMenuPageTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem
@@ -85,6 +85,22 @@ export function Sidebar() {
             </Link>
           )
         })}
+        {user?.user_metadata?.role === 'admin' && (
+          <Link
+            href="/dashboard/admin"
+            className={cn(
+              'group flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+              pathname === '/dashboard/admin'
+                ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/20'
+                : 'text-indigo-400 hover:bg-gray-50 dark:hover:bg-neutral-800 hover:text-indigo-500'
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <Shield className="h-4 w-4 text-inherit" />
+              Admin
+            </div>
+          </Link>
+        )}
       </nav>
 
       {/* Bottom Profile Dropdown */}
