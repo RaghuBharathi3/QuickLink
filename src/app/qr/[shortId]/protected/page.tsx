@@ -35,13 +35,17 @@ export default function ProtectedQRPage() {
       if (res.ok && data.redirect_url) {
         toast.success('Access Granted. Routing...')
         
-        let finalUrl = data.redirect_url
+        let finalUrl = (data.redirect_url || '').trim()
         if (!/^https?:\/\//i.test(finalUrl) && !finalUrl.includes('://')) {
           finalUrl = 'https://' + finalUrl
         }
         
-        // Try direct redirect
-        window.location.assign(finalUrl)
+        // Try direct redirect, use standard href to be safe across all browsers
+        try {
+          window.location.href = finalUrl
+        } catch (e) {
+          console.error("Redirect failed:", e)
+        }
         
         // Provide fallback
         setApprovedUrl(finalUrl)
