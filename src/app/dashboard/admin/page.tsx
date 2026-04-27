@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, Users, Activity, QrCode } from 'lucide-react'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -19,10 +20,15 @@ export default async function AdminPage() {
   }
 
   // Uses Service Role Key to fetch all users data and stats securely
-  const supabaseAdmin = createServerClient(
+  const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    { cookies: { getAll() { return [] }, setAll() {} } }
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
   )
 
   const { data: qrCodes } = await supabaseAdmin.from('qr_codes').select('*')
