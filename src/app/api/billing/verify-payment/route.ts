@@ -2,24 +2,55 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@/utils/supabase/server';
 import { createServerClient } from '@supabase/ssr';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { z } from 'zod';
+
+const verifyPaymentSchema = z.object({
+  razorpay_order_id: z.string(),
+  razorpay_payment_id: z.string(),
+  razorpay_signature: z.string(),
+});
 
 export async function POST(req: Request) {
-  try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId } = await req.json();
+  // Rate limit: 5 payment verifications per minute per IP
+  const ip = getClientIp(req.headers as Headers);
+  const rl = rateLimit(`verify:${ip}`, { limit: 5, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 });
+  }
 
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
+  // Check authentication
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const result = verifyPaymentSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = result.data;
+    const userId = user.id;
+
+    const signatureBody = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-      .update(body.toString())
+      .update(signatureBody.toString())
       .digest('hex');
 
     const isAuthentic = expectedSignature === razorpay_signature;
 
     if (isAuthentic) {
-      // Use server cookies to authenticate directly as the user
+      // Use service role client for database updates
       const supabaseAdmin = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xyzcompany.supabase.co',
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key',
+        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || '',
         { cookies: { getAll() { return [] }, setAll() {} } }
       );
 
@@ -38,17 +69,7 @@ export async function POST(req: Request) {
         current_period_end: expireDate.toISOString(),
       };
 
-      // Two-step operation to bypass Postgres unique constraint requirements on upsert
-      const { data: existingSub } = await supabaseAdmin.from('subscriptions').select('id').eq('user_id', userId).single();
-      
-      let dbError = null;
-      if (existingSub) {
-        const { error } = await supabaseAdmin.from('subscriptions').update(subData).eq('user_id', userId);
-        dbError = error;
-      } else {
-        const { error } = await supabaseAdmin.from('subscriptions').insert([subData]);
-        dbError = error;
-      }
+      const { error: dbError } = await supabaseAdmin.from('subscriptions').upsert(subData, { onConflict: 'user_id' });
       
       // Update JWT metadata
       const { error: metaError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
@@ -56,11 +77,8 @@ export async function POST(req: Request) {
       });
 
       if (dbError || metaError) {
-        console.error('Database setup issue or Admin API error. Attempting local client fallback.', dbError, metaError);
-        // Fallback to updating the currently logged in user just in case
-        const supabase = await createClient();
-        await supabase.auth.updateUser({ data: { plan: 'pro' } });
-        return NextResponse.json({ success: true, warning: 'Used local client fallback' });
+        console.error('Payment DB update error:', dbError, metaError);
+        return NextResponse.json({ success: false, error: 'Database update failed' }, { status: 500 });
       }
 
       return NextResponse.json({ success: true });

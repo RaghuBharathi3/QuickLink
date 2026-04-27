@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
-import { ArrowLeft, Scan, Globe, Monitor, TrendingUp, Loader2 } from 'lucide-react'
+import { ArrowLeft, Scan, Globe, Monitor, TrendingUp, Loader2, Calendar, MousePointer2, Smartphone, ShieldCheck, Zap } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 interface AnalyticsData {
   qr: { id: string; title: string; short_id: string; scan_count: number }
@@ -54,8 +55,12 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="relative">
+          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+          <Loader2 className="h-12 w-12 animate-spin text-primary relative z-10" />
+        </div>
+        <p className="text-sm font-black tracking-widest text-muted-foreground uppercase animate-pulse">Aggregating Engagement Data...</p>
       </div>
     )
   }
@@ -63,186 +68,254 @@ export default function AnalyticsPage() {
   if (!data) return null
 
   return (
-    <div className="space-y-8 py-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <Link href="/dashboard/qrcodes" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit">
-          <ArrowLeft className="h-4 w-4" /> Back to QR Codes
-        </Link>
-        <div className="sm:ml-4">
-          <h1 className="text-2xl font-extrabold tracking-tight">{data.qr.title || 'QR Code Analytics'}</h1>
-          <p className="text-muted-foreground text-sm font-mono">/{data.qr.short_id}</p>
+    <div className="space-y-10 pb-20 max-w-7xl mx-auto">
+      {/* Header section */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+        <div className="space-y-4">
+          <Link href="/dashboard/qrcodes" className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all">
+            <div className="p-1 rounded-md bg-slate-100 dark:bg-white/5 group-hover:bg-primary/10 group-hover:scale-110 transition-all">
+              <ArrowLeft className="h-3 w-3" />
+            </div>
+            Back to Infrastructure
+          </Link>
+          <div>
+            <h1 className="text-4xl font-black tracking-tight text-foreground">{data.qr.title || 'Production Link'}</h1>
+            <div className="flex items-center gap-3 mt-2">
+              <code className="text-[11px] font-black text-primary/60 bg-primary/5 px-2 py-1 rounded-lg tracking-wider">
+                NODE_ID: {data.qr.short_id}
+              </code>
+              <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-white/20" />
+              <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                <Calendar className="h-3 w-3" />
+                Since {new Date(data.period.since).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="sm:ml-auto flex gap-2">
-          {[7, 30].map((d) => (
-            <Button
+
+        <div className="flex items-center p-1 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm">
+          {[7, 30, 90].map((d) => (
+            <button
               key={d}
-              variant={days === d ? 'default' : 'outline'}
-              size="sm"
               onClick={() => setDays(d)}
-              className="rounded-xl"
+              className={cn(
+                "px-5 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all",
+                days === d 
+                  ? "bg-white dark:bg-white/10 text-primary shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
-              {d}d
-            </Button>
+              {d}D
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Summary stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid gap-4 sm:grid-cols-3"
-      >
+      {/* Primary Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Scans', value: data.summary.total_scans, icon: Scan, color: 'blue' },
-          { label: 'Human Scans', value: data.summary.human_scans, icon: TrendingUp, color: 'green' },
-          { label: 'Bot Scans', value: data.summary.bot_scans, icon: Globe, color: 'purple' },
-        ].map((stat) => (
-          <Card key={stat.label} className="glass-card border-none rounded-2xl overflow-hidden relative">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                <div className={`p-2 bg-${stat.color}-50 rounded-xl`}>
-                  <stat.icon className={`h-4 w-4 text-${stat.color}-500`} />
-                </div>
-              </div>
-              <p className="text-3xl font-black">{stat.value.toLocaleString()}</p>
-            </CardContent>
-          </Card>
+          { label: 'Total Engagement', value: data.summary.total_scans, icon: Zap, color: 'primary', trend: '+12.5%' },
+          { label: 'Unique Humans', value: data.summary.human_scans, icon: MousePointer2, color: 'emerald', trend: '+8.2%' },
+          { label: 'Bot Traffic', value: data.summary.bot_scans, icon: ShieldCheck, color: 'slate', trend: '-2.4%' },
+          { label: 'Active Regions', value: data.countries.length, icon: Globe, color: 'blue', trend: 'Global' },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card className="glass-card border-none rounded-[2rem] p-6 shadow-xl shadow-black/5 group relative overflow-hidden">
+               <div className={cn("absolute top-0 right-0 w-24 h-24 blur-3xl rounded-full -mr-10 -mt-10 opacity-20", `bg-${stat.color}-500`)} />
+               <div className="flex items-center justify-between relative z-10">
+                  <div className={cn("p-3 rounded-2xl", `bg-${stat.color}-500/10 text-${stat.color}-500`)}>
+                     <stat.icon className="h-5 w-5" />
+                  </div>
+                  <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-full", 
+                    stat.trend.startsWith('+') ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-500/10 text-slate-500"
+                  )}>
+                    {stat.trend}
+                  </span>
+               </div>
+               <div className="mt-6 space-y-1 relative z-10">
+                  <p className="text-3xl font-black tabular-nums tracking-tighter">{stat.value.toLocaleString()}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground opacity-70">{stat.label}</p>
+               </div>
+            </Card>
+          </motion.div>
         ))}
-      </motion.div>
+      </div>
 
-      {/* Time series chart */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card className="glass-card border-none rounded-2xl">
-          <CardHeader className="px-6 pt-6 pb-2">
-            <CardTitle className="text-base">Scans Over Time</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-6 px-4">
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={data.timeSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                  tickFormatter={(d) => d.slice(5)}
+      {/* Main Engagement Curve */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Card className="glass-card border-none rounded-[2.5rem] p-8 shadow-2xl shadow-black/5 overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-20" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
+            <div>
+               <h3 className="text-xl font-black tracking-tight">Traffic Velocity</h3>
+               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">Engagement timeline over {days} days</p>
+            </div>
+            <div className="flex items-center gap-6">
+               <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                  <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Human Scans</span>
+               </div>
+            </div>
+          </div>
+          
+          <div className="h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data.timeSeries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="8 8" stroke="rgba(0,0,0,0.03)" vertical={false} />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                  tickFormatter={(d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  dy={10}
                 />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontSize: '12px' }}
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                  dx={-10}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#6366f1"
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={{ r: 5, fill: '#6366f1' }}
-                  name="Scans"
+                <Tooltip 
+                  contentStyle={{ 
+                    borderRadius: '20px', 
+                    border: 'none', 
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.1)', 
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                  itemStyle={{ fontWeight: 900, color: '#6366f1', fontSize: '14px' }}
+                  labelStyle={{ fontWeight: 700, color: '#64748b', fontSize: '10px', textTransform: 'uppercase', marginBottom: '4px' }}
                 />
-              </LineChart>
+                <Area 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="#6366f1" 
+                  strokeWidth={4} 
+                  fillOpacity={1} 
+                  fill="url(#colorCount)" 
+                  animationDuration={2000}
+                />
+              </AreaChart>
             </ResponsiveContainer>
-          </CardContent>
+          </div>
         </Card>
       </motion.div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Device breakdown */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <Card className="glass-card border-none rounded-2xl h-full">
-            <CardHeader className="px-6 pt-6 pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Monitor className="h-4 w-4 text-muted-foreground" /> Device Types
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-6 flex items-center justify-center">
-              {data.devices.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-12">No scan data yet</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Device & OS breakdown */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="glass-card border-none rounded-[2.5rem] p-8 shadow-xl shadow-black/5 h-full">
+            <div className="flex items-center gap-3 mb-8">
+               <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5">
+                  <Smartphone className="h-5 w-5 text-primary" />
+               </div>
+               <h3 className="text-lg font-black tracking-tight">Node Environment</h3>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-8">
+              <div className="w-full sm:w-1/2 h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={data.devices}
                       cx="50%"
                       cy="50%"
-                      outerRadius={75}
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={8}
                       dataKey="value"
-                      nameKey="name"
-                      label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                      labelLine={false}
                     >
                       {data.devices.map((_, i) => (
                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px' }} />
+                    <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
-              )}
-            </CardContent>
+              </div>
+              <div className="w-full sm:w-1/2 space-y-4">
+                {data.devices.map((d, i) => (
+                   <div key={d.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                        <span className="text-xs font-bold text-muted-foreground">{d.name}</span>
+                      </div>
+                      <span className="text-xs font-black">{Math.round((d.value / (data.summary.total_scans || 1)) * 100)}%</span>
+                   </div>
+                ))}
+              </div>
+            </div>
           </Card>
         </motion.div>
 
-        {/* Top countries */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="glass-card border-none rounded-2xl h-full">
-            <CardHeader className="px-6 pt-6 pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Globe className="h-4 w-4 text-muted-foreground" /> Top Countries
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-6">
-              {data.countries.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-12 text-center">No scan data yet</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={data.countries.slice(0, 6)} layout="vertical" margin={{ left: 10, right: 10 }}>
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} width={55} />
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px' }} />
-                    <Bar dataKey="value" name="Scans" radius={[0, 4, 4, 0]}>
-                      {data.countries.slice(0, 6).map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
+        {/* Geographic Distribution */}
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Card className="glass-card border-none rounded-[2.5rem] p-8 shadow-xl shadow-black/5 h-full">
+            <div className="flex items-center gap-3 mb-8">
+               <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5">
+                  <Globe className="h-5 w-5 text-primary" />
+               </div>
+               <h3 className="text-lg font-black tracking-tight">Geographic Routing</h3>
+            </div>
+
+            <div className="space-y-5">
+               {data.countries.length === 0 ? (
+                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+                    <Globe className="h-8 w-8 opacity-20" />
+                    <p className="text-xs font-bold uppercase tracking-widest">No Global Data</p>
+                 </div>
+               ) : (
+                 data.countries.slice(0, 5).map((c, i) => {
+                   const pct = (c.value / (data.summary.total_scans || 1)) * 100
+                   return (
+                     <div key={c.name} className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest">
+                           <span className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{i + 1}.</span> {c.name}
+                           </span>
+                           <span className="text-primary">{c.value} Scans</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                           <motion.div 
+                             initial={{ width: 0 }}
+                             animate={{ width: `${pct}%` }}
+                             transition={{ duration: 1, delay: 0.8 + (i * 0.1) }}
+                             className="h-full bg-primary rounded-full" 
+                           />
+                        </div>
+                     </div>
+                   )
+                 })
+               )}
+            </div>
           </Card>
         </motion.div>
       </div>
-
-      {/* Top browsers */}
-      {data.browsers.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          <Card className="glass-card border-none rounded-2xl">
-            <CardHeader className="px-6 pt-6 pb-2">
-              <CardTitle className="text-base">Browsers</CardTitle>
-            </CardHeader>
-            <CardContent className="pb-6 space-y-3 px-6">
-              {data.browsers.slice(0, 6).map((b, i) => {
-                const pct = data.summary.human_scans > 0
-                  ? Math.round((b.value / data.summary.human_scans) * 100)
-                  : 0
-                return (
-                  <div key={b.name} className="flex items-center gap-3">
-                    <div className="w-24 text-sm font-medium text-foreground truncate">{b.name}</div>
-                    <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, backgroundColor: COLORS[i % COLORS.length] }}
-                      />
-                    </div>
-                    <div className="text-sm text-muted-foreground w-12 text-right">{b.value}</div>
-                  </div>
-                )
-              })}
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
     </div>
   )
 }

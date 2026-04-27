@@ -1,9 +1,21 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 import { canCreateQRCode } from '@/lib/subscription'
-import { validateUrl } from '@/lib/url-validator'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { z } from 'zod'
+
+const createQRCodeSchema = z.object({
+  original_url: z.string().url('Invalid destination URL'),
+  title: z.string().max(100).optional().nullable(),
+  fg_color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  bg_color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  style_type: z.string().optional(),
+  active_from: z.string().datetime().optional().nullable(),
+  expires_at: z.string().datetime().optional().nullable(),
+  password: z.string().min(1).max(50).optional().nullable(),
+})
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -31,7 +43,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   // Rate limit: 10 QR creations per minute per IP
   const ip = getClientIp(request.headers as Headers)
-  const rl = rateLimit(`create:${ip}`, { limit: 10, windowMs: 60_000 })
+  const rl = rateLimit(`create:${ip}`, { limit: 50, windowMs: 60_000 })
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
   }
@@ -45,13 +57,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { original_url, title, fg_color, bg_color, style_type, active_from, expires_at, password } = body
-
-    // Validate destination URL
-    const urlCheck = validateUrl(original_url)
-    if (!urlCheck.valid) {
-      return NextResponse.json({ error: urlCheck.reason }, { status: 400 })
+    const result = createQRCodeSchema.safeParse(body)
+    
+    if (!result.success) {
+      return NextResponse.json({ error: 'Validation failed', details: result.error.issues }, { status: 400 })
     }
+
+    const { original_url, title, fg_color, bg_color, style_type, active_from, expires_at, password } = result.data
 
     // Check subscription plan limits
     const planCheck = await canCreateQRCode(user.id)
@@ -70,7 +82,6 @@ export async function POST(request: Request) {
 
     let password_hash = null
     if (password) {
-      const bcrypt = require('bcryptjs')
       password_hash = await bcrypt.hash(password, 10)
     }
 
@@ -83,7 +94,7 @@ export async function POST(request: Request) {
         title: title || null,
         fg_color: fg_color || '#000000',
         bg_color: bg_color || '#FFFFFF',
-        style_type: style_type || '#FFFFFF', 
+        style_type: style_type || 'classic', 
         active_from: active_from || null,
         expires_at: expires_at || null,
         password_hash
@@ -96,7 +107,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(data)
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  } catch (err) {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 }

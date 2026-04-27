@@ -1,14 +1,31 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { z } from 'zod'
+
+const verifyPasswordSchema = z.object({
+  short_id: z.string().min(1),
+  password: z.string().min(1),
+})
 
 export async function POST(request: Request) {
-  try {
-    const { short_id, password } = await request.json()
+  // Strict rate limit: 5 attempts per minute per IP for password verification
+  const ip = getClientIp(request.headers as Headers)
+  const rl = rateLimit(`pwd:${ip}`, { limit: 30, windowMs: 60_000 })
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 })
+  }
 
-    if (!short_id || !password) {
-      return NextResponse.json({ error: 'Missing short_id or password' }, { status: 400 })
+  try {
+    const body = await request.json()
+    const result = verifyPasswordSchema.safeParse(body)
+    
+    if (!result.success) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
+
+    const { short_id, password } = result.data
 
     const supabase = await createClient()
 

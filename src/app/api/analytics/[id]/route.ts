@@ -1,5 +1,10 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const analyticsQuerySchema = z.object({
+  days: z.preprocess((val) => parseInt(val as string, 10), z.number().min(1).max(365).default(30))
+})
 
 export async function GET(
   request: Request,
@@ -8,7 +13,12 @@ export async function GET(
   const params = await props.params
   const id = params.id
   const { searchParams } = new URL(request.url)
-  const days = parseInt(searchParams.get('days') || '30')
+  
+  const query = analyticsQuerySchema.safeParse({
+    days: searchParams.get('days') || '30'
+  })
+  
+  const days = query.success ? query.data.days : 30
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
