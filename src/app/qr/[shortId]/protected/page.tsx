@@ -49,8 +49,9 @@ export default function ProtectedQRPage() {
         toast.error(data.error || 'Security breach: Invalid credentials')
         setPassword('')
       }
-    } catch {
-      toast.error('Signal connection error')
+    } catch (error) {
+      console.error('Submit error:', error)
+      toast.error('Connection error: ' + (error instanceof Error ? error.message : String(error)))
     } finally {
       setLoading(false)
     }
