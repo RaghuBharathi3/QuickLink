@@ -39,16 +39,26 @@ export default function ProtectedQRPage() {
         if (!/^https?:\/\//i.test(finalUrl) && !finalUrl.includes('://')) {
           finalUrl = 'https://' + finalUrl
         }
-        
-        // Try direct redirect, use standard href to be safe across all browsers
+
         try {
-          window.location.href = finalUrl
-        } catch (e) {
-          console.error("Redirect failed:", e)
+          // Clean the URL using the browser's native parser to ensure absolute validity
+          finalUrl = new URL(finalUrl).href
+        } catch (err) {
+          console.warn("URL parsing warning, using raw string:", err)
         }
         
-        // Provide fallback
+        // Provide fallback immediately
         setApprovedUrl(finalUrl)
+
+        // Try direct redirect, pushed to next tick to avoid Safari SyntaxError bubbling up
+        setTimeout(() => {
+          try {
+            window.location.replace(finalUrl)
+          } catch (e) {
+            console.error("Redirect failed:", e)
+          }
+        }, 100)
+
       } else {
         toast.error(data.error || 'Security breach: Invalid credentials')
         setPassword('')
