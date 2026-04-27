@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 const verifyPasswordSchema = z.object({
   short_id: z.string().min(1),
-  password: z.string().min(1),
+  password: z.string(),
 })
 
 export async function POST(request: Request) {

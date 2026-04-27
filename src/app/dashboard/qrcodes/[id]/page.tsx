@@ -40,6 +40,7 @@ export default function QRCodeDetailsPage({ params }: { params: Promise<{ id: st
   const [activeFrom, setActiveFrom] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
   const [password, setPassword] = useState('')
+  const [clearPassword, setClearPassword] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -108,7 +109,12 @@ export default function QRCodeDetailsPage({ params }: { params: Promise<{ id: st
         bg_color: bgColor,
         active_from: activeFrom ? new Date(activeFrom).toISOString() : null,
         expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
-        ...(password ? { new_password: password } : {}),
+      }
+
+      if (clearPassword) {
+        updates.new_password = ''
+      } else if (password) {
+        updates.new_password = password
       }
 
       const res = await fetch(`/api/codes/${id}`, {
@@ -119,8 +125,9 @@ export default function QRCodeDetailsPage({ params }: { params: Promise<{ id: st
 
       if (res.ok) {
         toast.success('Configuration synchronized.')
-        setCode((prev) => prev ? { ...prev, ...updates } as QRData : null)
+        setCode((prev) => prev ? { ...prev, ...updates, password_hash: clearPassword ? null : (password ? 'updated' : prev.password_hash) } as QRData : null)
         setPassword('')
+        setClearPassword(false)
       } else {
         const error = await res.json()
         toast.error(error.message || 'Sync failed')
@@ -273,12 +280,41 @@ export default function QRCodeDetailsPage({ params }: { params: Promise<{ id: st
                     <Input
                       type="password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        if (e.target.value) setClearPassword(false)
+                      }}
+                      disabled={clearPassword}
                       placeholder={code?.password_hash ? '•••••••• (Encrypted)' : 'Unsecured Signal'}
                       className="h-12 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border-slate-200/50 dark:border-white/5 focus:ring-primary/20 text-base font-bold"
                     />
-                    {code?.password_hash && (
-                      <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest px-1">Signal is currently password-protected</p>
+                    {code?.password_hash && !clearPassword && (
+                      <div className="flex items-center justify-between px-1">
+                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Signal is currently password-protected</p>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setClearPassword(true)}
+                          className="h-6 text-[10px] font-black text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 uppercase tracking-widest"
+                        >
+                          Remove Protection
+                        </Button>
+                      </div>
+                    )}
+                    {clearPassword && (
+                      <div className="flex items-center justify-between px-1">
+                        <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Protection will be removed on sync</p>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setClearPassword(false)}
+                          className="h-6 text-[10px] font-black text-muted-foreground uppercase tracking-widest"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     )}
                  </div>
 

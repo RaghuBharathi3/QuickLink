@@ -14,7 +14,7 @@ const createQRCodeSchema = z.object({
   style_type: z.string().optional(),
   active_from: z.string().datetime().optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
-  password: z.string().min(1).max(50).optional().nullable(),
+  password: z.string().max(50).optional().nullable(),
 })
 
 export async function GET(request: Request) {
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     const short_id = crypto.randomBytes(4).toString('hex')
 
     let password_hash = null
-    if (password) {
+    if (password && password.trim() !== '') {
       password_hash = await bcrypt.hash(password, 10)
     }
 
