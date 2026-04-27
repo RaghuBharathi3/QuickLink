@@ -14,7 +14,6 @@ const createQRCodeSchema = z.object({
   style_type: z.string().optional(),
   active_from: z.string().datetime().optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
-  password: z.string().max(50).optional().nullable(),
 })
 
 export async function GET(request: Request) {
@@ -63,7 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Validation failed', details: result.error.issues }, { status: 400 })
     }
 
-    const { original_url, title, fg_color, bg_color, style_type, active_from, expires_at, password } = result.data
+    const { original_url, title, fg_color, bg_color, style_type, active_from, expires_at } = result.data
 
     // Check subscription plan limits
     const planCheck = await canCreateQRCode(user.id)
@@ -80,11 +79,6 @@ export async function POST(request: Request) {
     // Generate a unique 8-character short ID
     const short_id = crypto.randomBytes(4).toString('hex')
 
-    let password_hash = null
-    if (password && password.trim() !== '') {
-      password_hash = await bcrypt.hash(password, 10)
-    }
-
     const { data, error } = await supabase
       .from('qr_codes')
       .insert({
@@ -96,8 +90,7 @@ export async function POST(request: Request) {
         bg_color: bg_color || '#FFFFFF',
         style_type: style_type || 'classic', 
         active_from: active_from || null,
-        expires_at: expires_at || null,
-        password_hash
+        expires_at: expires_at || null
       })
       .select()
       .single()

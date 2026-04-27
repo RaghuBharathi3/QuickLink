@@ -92,19 +92,6 @@ export async function GET(
     )
   }
 
-  // Check password protection
-  if (data.password_hash) {
-    return NextResponse.redirect(
-      new URL(`/qr/${shortId}/protected`, request.url),
-      { 
-        status: 302,
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      }
-    )
-  }
 
   // Parse User-Agent for analytics
   const userAgentStr = request.headers.get('user-agent') || ''

@@ -15,7 +15,6 @@ import { cn } from '@/lib/utils'
 export default function NewQRCodePage() {
   const [title, setTitle] = useState('')
   const [originalUrl, setOriginalUrl] = useState('')
-  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -29,8 +28,7 @@ export default function NewQRCodePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           title, 
-          original_url: originalUrl,
-          password: password || null
+          original_url: originalUrl
         })
       })
 
@@ -100,20 +98,7 @@ export default function NewQRCodePage() {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 px-2">
-                    <Lock className="h-4 w-4 text-primary" />
-                    <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Signal Security (Optional Password)</Label>
-                  </div>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="Encryption key..." 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    className="h-14 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border-slate-200/50 dark:border-white/5 focus:ring-primary/20 text-base font-bold px-6"
-                  />
-                </div>
+
 
                 <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-6">
                   <Link href="/dashboard/qrcodes" className="text-sm font-bold text-muted-foreground hover:text-foreground transition-colors px-4">Cancel</Link>

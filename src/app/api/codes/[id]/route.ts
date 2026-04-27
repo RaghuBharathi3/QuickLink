@@ -10,7 +10,6 @@ const updateQRCodeSchema = z.object({
   style_type: z.string().optional(),
   active_from: z.string().datetime().optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
-  new_password: z.string().max(50).optional().nullable(),
 })
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
@@ -60,16 +59,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
     const updates: any = { ...result.data }
 
-    // Handle password hashing server-side
-    if (updates.new_password !== undefined) {
-      if (updates.new_password === null || updates.new_password.trim() === '') {
-        // Explicit null or empty string = remove password
-        updates.password_hash = null
-      } else {
-        updates.password_hash = await bcrypt.hash(updates.new_password, 10)
-      }
-      delete updates.new_password
-    }
+
 
     const { data, error } = await supabase
       .from('qr_codes')

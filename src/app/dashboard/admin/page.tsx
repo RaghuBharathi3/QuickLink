@@ -60,7 +60,7 @@ export default async function AdminPage() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="text-4xl font-extrabold text-foreground">{totalUsers}</div>
-            {usersError && <p className="text-xs text-red-500 mt-2 font-medium">Require Service Role Key to list</p>}
+            {usersError && <p className="text-xs text-red-500 mt-2 font-medium">Error: {usersError.message}</p>}
           </CardContent>
         </Card>
         
@@ -108,7 +108,9 @@ export default async function AdminPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">No user data available. Try adding SUPABASE_SERVICE_ROLE_KEY to environment variables.</p>
+              <p className="text-muted-foreground text-sm">
+                No user data available. {usersError ? `Error: ${usersError.message}` : 'Try adding SUPABASE_SERVICE_ROLE_KEY to environment variables.'}
+              </p>
             )}
          </div>
       </div>
