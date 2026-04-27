@@ -17,6 +17,7 @@ export default function ProtectedQRPage() {
   const shortId = params.shortId as string
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [approvedUrl, setApprovedUrl] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +34,17 @@ export default function ProtectedQRPage() {
 
       if (res.ok && data.redirect_url) {
         toast.success('Access Granted. Routing...')
-        window.location.href = data.redirect_url
+        
+        let finalUrl = data.redirect_url
+        if (!/^https?:\/\//i.test(finalUrl) && !finalUrl.includes('://')) {
+          finalUrl = 'https://' + finalUrl
+        }
+        
+        // Try direct redirect
+        window.location.assign(finalUrl)
+        
+        // Provide fallback
+        setApprovedUrl(finalUrl)
       } else {
         toast.error(data.error || 'Security breach: Invalid credentials')
         setPassword('')
@@ -43,6 +54,34 @@ export default function ProtectedQRPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (approvedUrl) {
+    return (
+      <AuroraBackground>
+        <div className="min-h-screen flex items-center justify-center px-4 relative z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md text-center space-y-6"
+          >
+            <div className="mx-auto w-20 h-20 bg-primary/10 backdrop-blur-3xl rounded-[2.5rem] flex items-center justify-center border border-primary/20">
+              <Zap className="h-10 w-10 text-primary animate-pulse" />
+            </div>
+            <h1 className="text-3xl font-black text-foreground">Access Granted</h1>
+            <p className="text-muted-foreground font-medium">
+              If you are not redirected automatically, click the button below.
+            </p>
+            <a 
+              href={approvedUrl}
+              className="inline-flex h-14 items-center justify-center rounded-2xl bg-primary px-8 text-sm font-black uppercase tracking-widest text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-105 active:scale-95"
+            >
+              Continue to Link
+            </a>
+          </motion.div>
+        </div>
+      </AuroraBackground>
+    )
   }
 
   return (
