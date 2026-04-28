@@ -5,6 +5,8 @@ import { z } from 'zod'
 
 const updateQRCodeSchema = z.object({
   title: z.string().max(100).optional().nullable(),
+  original_url: z.string().url().optional(),
+  is_active: z.boolean().optional(),
   fg_color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
   bg_color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
   style_type: z.string().optional(),
