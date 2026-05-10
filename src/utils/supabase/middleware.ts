@@ -6,9 +6,22 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  const protectedRoutes = ['/dashboard', '/api/codes']
+  const publicApiRoutes = ['/api/codes/verify-password']
+  
+  const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route)) &&
+                           !publicApiRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+
+  // If this is a public route, skip the expensive Supabase network call
+  // to avoid Vercel edge middleware timeouts (504 errors)
+  if (!isProtectedRoute) {
+    return supabaseResponse
+  }
+
+  // Fallback to the real URL so it doesn't hang on a dummy URL if Vercel env vars are missing
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xyzcompany.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key',
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zfyaylrgzsbsygqooyyd.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
     {
       cookies: {
         getAll() {
@@ -30,12 +43,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const protectedRoutes = ['/dashboard', '/api/codes']
-  const publicApiRoutes = ['/api/codes/verify-password']
-  
-  const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route)) &&
-                           !publicApiRoutes.some(route => request.nextUrl.pathname.startsWith(route))
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()
