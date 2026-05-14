@@ -4,14 +4,14 @@ Here is a simplified, high-level architecture diagram perfect for including in a
 
 ```mermaid
 graph TD
-    %% Define Styles with Enhanced Visibility
-    classDef client fill:#e1f5fe,stroke:#0288d1,stroke-width:3px,color:#000000,font-weight:bold,font-size:18px;
-    classDef frontend fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000000,font-weight:bold,font-size:18px;
-    classDef backend fill:#fff3e0,stroke:#f57c00,stroke-width:3px,color:#000000,font-weight:bold,font-size:18px;
-    classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000000,font-weight:bold,font-size:18px;
+    %% Define Styles with Clean, Minimal Background
+    classDef client fill:#ffffff,stroke:#0288d1,stroke-width:3px,color:#000000,font-weight:bold,font-size:18px;
+    classDef frontend fill:#ffffff,stroke:#388e3c,stroke-width:3px,color:#000000,font-weight:bold,font-size:18px;
+    classDef backend fill:#ffffff,stroke:#f57c00,stroke-width:3px,color:#000000,font-weight:bold,font-size:18px;
+    classDef external fill:#ffffff,stroke:#7b1fa2,stroke-width:3px,color:#000000,font-weight:bold,font-size:18px;
     classDef edgeLabel font-weight:bold,color:#000000,font-size:16px;
 
-    %% Nodes with Enhanced Text
+    %% Nodes with Clean White Background
     User(["<b style='font-size:18px'>User / Web Browser</b>"]):::client
     
     subgraph Quicklink_Platform ["<b style='font-size:18px'>Quicklink Platform</b>"]
